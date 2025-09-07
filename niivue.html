@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>NiiVue</title>
+</head>
+<body>
+    <canvas id="gl" width="640" height="640"></canvas>
+
+    <script type="module">
+        import { Niivue } from "https://unpkg.com/@niivue/niivue/dist/index.js";
+
+        // Create Niivue instance first
+        window.nv = new Niivue();
+
+        (async () => {
+            const nvOpts = {
+                show3Dcrosshair: false,
+                backColor: [0, 0, 0, 0],
+            };
+
+            // Apply options to the Niivue instance
+            window.nv.setDefaults(nvOpts);
+
+            await window.nv.attachTo("gl");
+
+            // Load the NIfTI file
+            const volumeList = [{'url':':privacy data.nii'}]; // 替换为你的 .nii 文件路径
+            await window.nv.loadVolumes(volumeList);
+
+            // Set the colormap and slice type
+            const firstVolumeId = window.nv.volumes[0].id;
+            window.nv.setColormap(firstVolumeId, 'ct_surface');
+
+            // Set the rendering slice type to Axial
+            window.nv.setSliceType(window.nv.sliceTypeAxial);
+
+            // Adjust the orientation and position to get the frontal view
+            // This might require some trial and error to get the correct orientation
+            const axialOrientation = [0, 1, 0]; // Y-axis as the axial orientation
+            const axialPosition = [window.nv.volumes[0].dims.x / 2, window.nv.volumes[0].dims.y / 2, window.nv.volumes[0].dims.z / 2]; // Middle position along all axes
+
+            // Set the orientation and position
+            window.nv.setSliceOrientation(axialOrientation);
+            window.nv.setSlicePosition(axialPosition);
+
+            // Render the scene
+            window.nv.render();
+
+            // Wait for rendering to complete
+            await window.nv.waitForRendering();
+
+            // Save the scene as an image
+            window.nv.saveScene('scene.png');
+
+            // Signal that saving is complete
+            document.getElementById('gl').setAttribute('data-saved', 'true');
+            console.log('data-saved set to true');  // 添加调试信息
+        })();
+    </script>
+</body>
+</html>
