@@ -1,0 +1,62 @@
+GPUS: (0,)
+MODEL:
+  NAME: CThrnet
+  PRETRAINED: "hrnetv2_pretrained/hrnetv2_w18_imagenet_pretrained.pth"
+  NUM_JOINTS: 4  
+  EXTRA:
+    STAGE2:
+      NUM_MODULES: 1
+      NUM_BRANCHES: 2
+      BLOCK: 'BASIC'
+      NUM_BLOCKS: [4, 4]
+      NUM_CHANNELS: [18, 36]
+      FUSE_METHOD: 'SUM'
+    STAGE3:
+      NUM_MODULES: 4
+      NUM_BRANCHES: 3
+      BLOCK: 'BASIC'
+      NUM_BLOCKS: [4, 4, 4]
+      NUM_CHANNELS: [18, 36, 72]
+      FUSE_METHOD: 'SUM'
+    STAGE4:
+      NUM_MODULES: 3
+      NUM_BRANCHES: 4
+      BLOCK: 'BASIC'
+      NUM_BLOCKS: [4, 4, 4, 4]
+      NUM_CHANNELS: [18, 36, 72, 144]
+      FUSE_METHOD: 'SUM'
+
+DATASET:
+  AUGMENTATIONS:
+    - ROTATE: [-15, 15]
+    - ELASTIC_TRANSFORM: 0.2
+    - GAUSSIAN_NOISE: 0.1
+  DATASET: 'Unlabeledwflw'
+  ROOT: 'data/ct'
+  TRAINSET: 'data/ct/landmarks_unsup.csv'
+  TESTSET: 'data/ct/landmarks_test.csv'
+  FLIP: true
+  SCALE_FACTOR: 0.35
+  ROT_FACTOR: 15
+
+TRAIN:
+  BATCH_SIZE_PER_GPU: 8
+  SHUFFLE: true
+  BEGIN_EPOCH: 0
+  END_EPOCH: 120
+  OPTIMIZER: 'adam'
+  LR: 0.0001
+  LR_SCHEDULER:
+    TYPE: 'CosineAnnealing'
+    T_MAX: 200
+  LR_FACTOR: 0.1
+  MOMENTUM: 0.9
+  WD: 0.0001
+  COSINE_ETA_MIN : 1e-6
+
+TEST:
+  BATCH_SIZE_PER_GPU: 8
+  FLIP_TEST: false
+  MODEL_FILE: 'output/ct/final_state.pth'
+
+OUTPUT_DIR: 'output/ct'

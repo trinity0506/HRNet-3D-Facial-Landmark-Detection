@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>NiiVue - 仅正面</title>
+    <link rel="stylesheet" href="niivue.css" />
+    <style>
+      #controls { margin-top: 8px; }
+      #saveFaceBtn {
+        padding: 6px 10px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gl" width="640" height="640"></canvas>
+
+    <div id="controls">
+      <button id="saveFaceBtn">保存面部正面照片</button>
+    </div>
+
+<script type="module">
+import { Niivue } from "./niivue.js";
+window.nv = new Niivue();
+
+(async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const log = (...a) => console.log(...a);
+
+  const nvOpts = { show3Dcrosshair: false, backColor: [1,1,1,1] };
+  window.nv.setDefaults(nvOpts);
+  await window.nv.attachTo("gl");
+
+  const volumeList = [{ url: 'output/preprocessed.nii.gz' }];
+  await window.nv.loadVolumes(volumeList);
+
+  try {
+    if (typeof window.nv.sliceTypeSelect === 'function') {
+      window.nv.sliceTypeSelect(4);
+    } else if (typeof window.nv.setSliceType === 'function') {
+      window.nv.setSliceType(4);
+    } else {
+      console.warn('sliceTypeSelect/setSliceType not found — 无法强制 3D-only');
+    }
+    if (typeof window.nv.setRenderAzimuthElevation === 'function') {
+      window.nv.setRenderAzimuthElevation(0, 0);
+    }
+  } catch (e) { console.warn(e); }
+
+  for (let i = 0; i < 6; i++) {
+    try { if (typeof window.nv.drawScene === 'function') window.nv.drawScene(); } catch (e) {}
+    await wait(120);
+  }
+
+
+window.prepareFrontView = async function(az = 180, el = 0) {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const draw = () => { try { if (typeof nv.drawScene === 'function') nv.drawScene(); } catch(e){} };
+  // 记录日志
+  console.log('prepareFrontView: setting az', az, 'el', el);
+  try {
+    if (typeof nv.setRenderAzimuthElevation === 'function') {
+      nv.setRenderAzimuthElevation(az, el);
+    } else if (typeof nv.setRotationDegrees === 'function') {
+      nv.setRotationDegrees(0, az, 0);
+    } else if (typeof nv.setRotation === 'function') {
+      nv.setRotation(0, az * Math.PI / 180, 0);
+    }
+  } catch(e) { console.warn(e); }
+
+  // 多次重绘并等待，让 GPU 稳定
+  for (let i = 0; i < 8; i++) {
+    draw();
+    await wait(120);
+  }
+  // 标记就绪（自动化脚本可根据此判定）
+  document.title = 'niivue-ready';
+  window.__niivue_ready_at = Date.now();
+  console.log('prepareFrontView: ready');
+};
+
+  if (typeof nv.onAzimuthElevationChange === 'function') {
+    nv.onAzimuthElevationChange = (az, el) => {
+      window.__nv_lastAzEl = { az, el, t: Date.now() };
+      console.log('onAzimuthElevationChange ->', az, el);
+    };
+  }
+
+  (async () => {
+    log('attachTo canvas...');
+    await nv.attachTo(canvas);
+
+    try {
+      if (typeof nv.setMultiplanarLayout === 'function') nv.setMultiplanarLayout(4);
+      else if (typeof nv.sliceTypeSelect === 'function') nv.sliceTypeSelect(3);
+      else if (typeof nv.setSliceType === 'function') nv.setSliceType(4);
+    } catch (e) { console.warn(e); }
+
+    log('开始加载体数据…');
+    await nv.loadVolumes([{ url: './privacydata.nii.gz' }]);
+    log('体数据已加载');
+
+    try { await window.prepareFrontView(180, 0); } catch (e) { console.warn(e); }
+
+  })();
+
+})(); 
+
+  // 保存按钮（示例）——截图前可手动调用 prepareFrontView
+document.getElementById('saveFaceBtn').addEventListener('click', async () => {
+  if (window.prepareFrontView) await window.prepareFrontView(180, 0);
+  // 最终重绘并短等待
+  try { if (typeof nv.drawScene === 'function') nv.drawScene(); } catch(e){}
+  await new Promise(r=>setTimeout(r,250));
+  const canvas = document.getElementById('gl');
+  canvas.toBlob(blob => {
+      if (!blob) { alert('截图失败'); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'face_front.png'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }, 'image/png');
+  });
+</script>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+GPUS: (0,)
+WORKERS: 4
+PRINT_FREQ: 50
+
+DATASET:
+  DATASET: WFLW
+  ROOT: './data/wflw/images'
+  TRAINSET: './data/wflw/face_landmarks_wflw_train.csv'
+  TESTSET: './data/wflw/face_landmarks_wflw_test.csv'
+  FLIP: true
+  SCALE_FACTOR: 0.35
+  ROT_FACTOR: 15
+MODEL:
+  NAME: 'hrnet'
+  NUM_JOINTS: 98
+  INIT_WEIGHTS: true
+  PRETRAINED: 'hrnetv2_pretrained/hrnetv2_w18_imagenet_pretrained.pth'
+  SIGMA: 1.5
+  IMAGE_SIZE: [384, 384]
+  HEATMAP_SIZE: [96, 96]
+  EXTRA:
+    FINAL_CONV_KERNEL: 1
+    STAGE2:
+      NUM_MODULES: 1
+      NUM_BRANCHES: 2
+      BLOCK: BASIC
+      NUM_BLOCKS:
+        - 4
+        - 4
+      NUM_CHANNELS:
+        - 18
+        - 36
+      FUSE_METHOD: SUM
+    STAGE3:
+      NUM_MODULES: 4
+      NUM_BRANCHES: 3
+      BLOCK: BASIC
+      NUM_BLOCKS:
+        - 4
+        - 4
+        - 4
+      NUM_CHANNELS:
+        - 18
+        - 36
+        - 72
+      FUSE_METHOD: SUM
+    STAGE4:
+      NUM_MODULES: 3
+      NUM_BRANCHES: 4
+      BLOCK: BASIC
+      NUM_BLOCKS:
+        - 4
+        - 4
+        - 4
+        - 4
+      NUM_CHANNELS:
+        - 18
+        - 36
+        - 72
+        - 144
+      FUSE_METHOD: SUM
+TRAIN:
+  BATCH_SIZE_PER_GPU: 8
+  SHUFFLE: true
+  BEGIN_EPOCH: 0
+  END_EPOCH: 120
+  RESUME: False
+  OPTIMIZER: 'adam'
+  LR: 1e-3
+  WD: 1e-4
+  LR_STEP: [80, 140]
+  MOMENTUM: 0.9
+  NESTEROV: true
+TEST:
+  BATCH_SIZE_PER_GPU: 8
+INFER:
+  MODEL_FILE: "./output/WFLW/face_alignment_wflw_hrnet_w18/model_best_1.pth"  
+  IMAGE_FILE: "out.png" 
+  OUT: "./output/face_2D.jpg"              
+  JSON_OUT: "./output/keypoints_2D.json"           
+  KP_INDICES: [60,64,68,72] #[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98] # 
+  GPU: "0"                           
+  CONF_THRESH: 0.0                     
